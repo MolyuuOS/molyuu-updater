@@ -1,8 +1,9 @@
+use std::fs;
 use std::process::exit;
 
 use clap::{Arg, ArgAction, Command};
 
-use crate::core::pacman::Pacman;
+use crate::core::pacman::{ALPM_HELD_LOCK, Pacman};
 
 mod core;
 
@@ -25,6 +26,12 @@ fn cli() -> Command {
 }
 
 fn main() {
+    std::panic::set_hook(Box::new(|_info| {
+        if ALPM_HELD_LOCK.load() {
+            fs::remove_file("/var/lib/pacman/db.lck").unwrap();
+        }
+        println!("{}", _info);
+    }));
     let matches = cli().get_matches();
     let supports_duplicate_detection = matches.get_one::<bool>("supports-duplicate-detection").unwrap_or(&false);
     let enable_duplicate_detection = matches.get_one::<bool>("enable-duplicate-detection").unwrap_or(&false);
@@ -34,9 +41,8 @@ fn main() {
 
     match matches.subcommand() {
         Some(("check", _)) => {
-            pacman.sync_database().unwrap();
-            let num = pacman.check_updates().unwrap();
-            if num > 0 {
+            let change_num = pacman.check_updates().unwrap();
+            if change_num > 0 {
                 exit_code = 0;
             }
         }
@@ -44,9 +50,8 @@ fn main() {
             if *supports_duplicate_detection {
                 exit_code = 1;
             } else {
-                pacman.sync_database().unwrap();
-                let num = pacman.check_updates().unwrap();
-                if num == 0 {
+                let change_num = pacman.check_updates().unwrap();
+                if change_num == 0 {
                     exit_code = 7;
                 } else {
                     pacman.update_system().unwrap();

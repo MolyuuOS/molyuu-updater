@@ -6,5 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+alpm = "3.0.5"
 clap = "4.5.4"
+crossbeam-utils = "0.8.19"
 libc = "0.2.153"
+r2d2 = "0.8.10"
+r2d2-alpm = "0.2.0"
